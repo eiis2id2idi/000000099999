@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vexus Host</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
+  body {
+    min-height:100vh;
+    background: radial-gradient(circle at 20% 20%, #1a0b2e 0%, #0a0a12 45%, #050507 100%);
+    color:#eae6f5;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .glass {
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:18px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.45);
+  }
+  #auth-box { width:100%; max-width:380px; padding:36px; text-align:center; }
+  #auth-box h1 { font-size:1.5rem; margin-bottom:6px; background:linear-gradient(90deg,#a855f7,#6366f1); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #auth-box p { color:#9a94b3; font-size:0.85rem; margin-bottom:24px; }
+  input {
+    width:100%; padding:12px 14px; margin-bottom:12px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+    border-radius:10px; color:#fff; font-size:0.9rem; outline:none;
+    transition:border 0.2s;
+  }
+  input:focus { border-color:#a855f7; }
+  button {
+    width:100%; padding:12px; border:none; border-radius:10px;
+    background:linear-gradient(90deg,#a855f7,#6366f1); color:#fff; font-weight:600;
+    cursor:pointer; font-size:0.9rem; transition:opacity 0.2s;
+  }
+  button:hover { opacity:0.85; }
+  .link-btn { background:none; color:#a855f7; margin-top:14px; font-size:0.8rem; width:auto; padding:0; }
+  .error { color:#f87171; font-size:0.8rem; margin-top:8px; min-height:16px; }
+
+  #app { display:none; width:100%; max-width:900px; }
+  header.top { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding:0 4px; }
+  header.top h1 { font-size:1.3rem; background:linear-gradient(90deg,#a855f7,#6366f1); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  header.top span { color:#9a94b3; font-size:0.8rem; }
+  .logout { width:auto; padding:8px 16px; font-size:0.8rem; background:rgba(255,255,255,0.08); }
+
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+  @media (max-width:700px) { .grid { grid-template-columns:1fr; } }
+  .card { padding:22px; }
+  .card h2 { font-size:1rem; margin-bottom:4px; }
+  .card p.hint { color:#9a94b3; font-size:0.78rem; margin-bottom:14px; }
+  .card input[type=file] { padding:8px; font-size:0.8rem; }
+
+  .list { padding:22px; }
+  .list h2 { font-size:1rem; margin-bottom:14px; }
+  .item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 14px; border-radius:10px; background:rgba(255,255,255,0.04);
+    margin-bottom:8px; font-size:0.85rem;
+  }
+  .item a { color:#a855f7; text-decoration:none; }
+  .item a:hover { text-decoration:underline; }
+  .item button { width:auto; padding:5px 10px; font-size:0.75rem; background:rgba(248,113,113,0.15); color:#f87171; }
+  .empty { color:#655f7a; font-size:0.8rem; text-align:center; padding:16px 0; }
+  .status { font-size:0.78rem; margin-top:8px; min-height:16px; }
+  .status.ok { color:#4ade80; }
+  .status.err { color:#f87171; }
+</style>
+</head>
+<body>
+
+  <div id="auth-box" class="glass">
+    <h1>Vexus Host</h1>
+    <p>Hospede seus sites estáticos e APIs</p>
+    <input type="email" id="auth-email" placeholder="Email">
+    <input type="password" id="auth-pass" placeholder="Senha">
+    <button id="auth-submit">Entrar</button>
+    <button class="link-btn" id="auth-toggle">Não tem conta? Cadastre-se</button>
+    <div class="error" id="auth-error"></div>
+  </div>
+
+  <div id="app">
+    <header class="top">
+      <div>
+        <h1>Vexus Host</h1>
+        <span id="user-email"></span>
+      </div>
+      <button class="logout" id="logout-btn">Sair</button>
+    </header>
+
+    <div class="grid">
+      <div class="card glass">
+        <h2>Hospedar Site</h2>
+        <p class="hint">Envie um .zip com o index.html solto na raiz (sem pasta)</p>
+        <input type="text" id="site-slug" placeholder="Nome do site (opcional)">
+        <input type="file" id="site-file" accept=".zip">
+        <button id="site-submit">Enviar site</button>
+        <div class="status" id="site-status"></div>
+      </div>
+
+      <div class="card glass">
+        <h2>Hospedar API</h2>
+        <p class="hint">Envie um .js: module.exports = (req, res) => {...}</p>
+        <input type="text" id="api-slug" placeholder="Nome da API (opcional)">
+        <input type="file" id="api-file" accept=".js">
+        <button id="api-submit">Enviar API</button>
+        <div class="status" id="api-status"></div>
+      </div>
+    </div>
+
+    <div class="list glass" style="margin-bottom:20px;">
+      <h2>Meus sites</h2>
+      <div id="sites-list"></div>
+    </div>
+
+    <div class="list glass">
+      <h2>Minhas APIs</h2>
+      <div id="apis-list"></div>
+    </div>
+  </div>
+
+<script>
+const API_BASE = '';
+let token = localStorage.getItem('vexus_token');
+let isRegisterMode = false;
+
+const $ = id => document.getElementById(id);
+
+function setError(msg) { $('auth-error').textContent = msg; }
+function setStatus(el, msg, ok) {
+  el.textContent = msg;
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+}
+
+$('auth-toggle').onclick = () => {
+  isRegisterMode = !isRegisterMode;
+  $('auth-submit').textContent = isRegisterMode ? 'Cadastrar' : 'Entrar';
+  $('auth-toggle').textContent = isRegisterMode ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastre-se';
+  setError('');
+};
+
+$('auth-submit').onclick = async () => {
+  const email = $('auth-email').value.trim();
+  const password = $('auth-pass').value;
+  setError('');
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/${isRegisterMode ? 'register' : 'login'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) return setError(data.error || 'Erro');
+    token = data.token;
+    localStorage.setItem('vexus_token', token);
+    localStorage.setItem('vexus_email', data.email);
+    showApp();
+  } catch (e) {
+    setError('Falha na conexão com o servidor');
+  }
+};
+
+$('logout-btn').onclick = () => {
+  localStorage.removeItem('vexus_token');
+  localStorage.removeItem('vexus_email');
+  token = null;
+  $('app').style.display = 'none';
+  $('auth-box').style.display = 'block';
+};
+
+async function authFetch(url, opts = {}) {
+  opts.headers = Object.assign({}, opts.headers, { Authorization: `Bearer ${token}` });
+  const res = await fetch(url, opts);
+  if (res.status === 401) { $('logout-btn').onclick(); throw new Error('Sessão expirada'); }
+  return res;
+}
+
+function renderList(container, items, type) {
+  container.innerHTML = '';
+  if (!items.length) {
+    container.innerHTML = '<div class="empty">Nada hospedado ainda</div>';
+    return;
+  }
+  items.forEach(item => {
+    const url = type === 'site' ? `/s/${item.slug}/` : `/a/${item.slug}`;
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `<a href="${url}" target="_blank">${item.slug}</a>`;
+    const del = document.createElement('button');
+    del.textContent = 'Excluir';
+    del.onclick = async () => {
+      await authFetch(`${API_BASE}/api/${type === 'site' ? 'sites' : 'apis'}/${item.id}`, { method: 'DELETE' });
+      loadLists();
+    };
+    div.appendChild(del);
+    container.appendChild(div);
+  });
+}
+
+async function loadLists() {
+  const [sitesRes, apisRes] = await Promise.all([
+    authFetch(`${API_BASE}/api/my/sites`),
+    authFetch(`${API_BASE}/api/my/apis`)
+  ]);
+  renderList($('sites-list'), await sitesRes.json(), 'site');
+  renderList($('apis-list'), await apisRes.json(), 'api');
+}
+
+$('site-submit').onclick = async () => {
+  const file = $('site-file').files[0];
+  const status = $('site-status');
+  if (!file) return setStatus(status, 'Selecione um arquivo .zip', false);
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('slug', $('site-slug').value.trim());
+  try {
+    const res = await authFetch(`${API_BASE}/api/sites`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) return setStatus(status, data.error, false);
+    setStatus(status, `Hospedado em ${data.url}`, true);
+    $('site-slug').value = ''; $('site-file').value = '';
+    loadLists();
+  } catch (e) { setStatus(status, 'Erro ao enviar', false); }
+};
+
+$('api-submit').onclick = async () => {
+  const file = $('api-file').files[0];
+  const status = $('api-status');
+  if (!file) return setStatus(status, 'Selecione um arquivo .js', false);
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('slug', $('api-slug').value.trim());
+  try {
+    const res = await authFetch(`${API_BASE}/api/apis`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) return setStatus(status, data.error, false);
+    setStatus(status, `Hospedado em ${data.url}`, true);
+    $('api-slug').value = ''; $('api-file').value = '';
+    loadLists();
+  } catch (e) { setStatus(status, 'Erro ao enviar', false); }
+};
+
+function showApp() {
+  $('auth-box').style.display = 'none';
+  $('app').style.display = 'block';
+  $('user-email').textContent = localStorage.getItem('vexus_email') || '';
+  loadLists();
+}
+
+if (token) showApp();
+</script>
+</body>
+</html>

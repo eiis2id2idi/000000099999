@@ -1,0 +1,39 @@
+# fly.toml — configuração do Vexus Host no Fly.io
+# Antes do deploy, troque "app" pelo nome único que você escolher
+# (ex: vexus-host-seunome), e rode: fly launch --no-deploy (ele gera isso, mas
+# pode usar este arquivo pronto direto).
+
+app = "vexus-host"
+primary_region = "gru" # gru = São Paulo. Troque se quiser outra região.
+
+[build]
+
+[env]
+  PORT = "3000"
+
+[[mounts]]
+  source = "vexus_data"
+  destination = "/app/data"
+
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.http_checks]]
+    interval = "15s"
+    grace_period = "10s"
+    method = "get"
+    path = "/"
+    protocol = "http"
+    timeout = "5s"

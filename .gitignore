@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/db.json
+storage/sites/*
+storage/apis/*
+!storage/sites/.gitkeep
+!storage/apis/.gitkeep
